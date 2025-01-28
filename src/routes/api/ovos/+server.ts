@@ -1,8 +1,8 @@
-export const prerender = true;
 import { db } from '$lib/server/db';
 import { ovo } from '$lib/server/db/schema';
+import { json } from '@sveltejs/kit';
 
-export async function load() {
+export async function GET() {
   const ovos = await db.select().from(ovo);
-  return { ovos };
+  return json(ovos);
 }
