@@ -1,25 +1,27 @@
 import type { Handle } from '@sveltejs/kit';
-import * as auth from '$lib/server/auth.js';
+import jwt from 'jsonwebtoken';
+import { env } from '$env/dynamic/private';
 
-const handleAuth: Handle = async ({ event, resolve }) => {
-	const sessionToken = event.cookies.get(auth.sessionCookieName);
-	if (!sessionToken) {
-		event.locals.user = null;
-		event.locals.session = null;
-		return resolve(event);
-	}
+const JWT_SECRET = env.JWT_SECRET || 'default_secret_key';
 
-	const { session, user } = await auth.validateSessionToken(sessionToken);
-	if (session) {
-		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
-	} else {
-		auth.deleteSessionTokenCookie(event);
-	}
+export const handle: Handle = async ({ event, resolve }) => {
+  const token = event.cookies.get('auth_token');
 
-	event.locals.user = user;
-	event.locals.session = session;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
 
-	return resolve(event);
+      if (typeof decoded === 'object' && decoded !== null) {
+        event.locals.user = decoded as { id: string; username: string; role: string };
+      } else {
+        event.locals.user = null;
+      }
+    } catch {
+      event.locals.user = null;
+    }
+  } else {
+    event.locals.user = null;
+  }
+
+  return resolve(event);
 };
-
-export const handle: Handle = handleAuth;
