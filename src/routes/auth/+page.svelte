@@ -16,7 +16,7 @@
         });
   
         if (response.ok) {
-          goto('/');  // Redireciona para o dashboard após o login
+          goto('/home');  // Redireciona para o dashboard após o login
         } else {
           const result = await response.json();
           errorMsg = result.message || 'Falha no login.';
