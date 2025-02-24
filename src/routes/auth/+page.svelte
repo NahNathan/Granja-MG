@@ -1,5 +1,6 @@
 <script>
     import { goto } from '$app/navigation';
+    import HomeButton from '$lib/components/HomeButton.svelte';
   
     let username = '';
     let password = '';
@@ -42,4 +43,5 @@
   
     <button type="submit">Entrar</button>
   </form>
+
   
