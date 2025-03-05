@@ -1,12 +1,16 @@
 <script>
     import { goto } from '$app/navigation';
 
-    // 🔹 Definição de props para tornar o botão reutilizável
+    // 🔹 Props para tornar o botão reutilizável
     export let text = 'Clique Aqui';  // Texto do botão
     export let to = '/';  // URL de destino
+
+    function navigate() {
+        if (to) goto(to);
+    }
 </script>
 
-<button on:click={() => goto(to)}>
+<button on:click={navigate}>
     {text}
 </button>
 
@@ -15,7 +19,7 @@
         background: #41644A;
         color: #f1f0e9;
         text-align: center;
-        height: 100px ;
+        height: 100px;
         width: 200px;
         margin: 10px;
         border: none;

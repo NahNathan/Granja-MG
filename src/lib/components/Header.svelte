@@ -1,5 +1,5 @@
 <header>
-	<a href="/">
+	<a href="/home">
 		<h1>Granja MJ</h1>
 	</a>
 </header>

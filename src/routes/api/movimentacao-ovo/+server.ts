@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db';
 import { movimentacaoOvo } from '$lib/server/db/schema';
 import { json, error } from '@sveltejs/kit';
-import { sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 // 🔹 GET: Buscar movimentações de ovos
 export async function GET() {
@@ -47,7 +47,7 @@ export async function DELETE({ request }) {
             throw error(400, 'ID é obrigatório para exclusão.');
         }
 
-        await db.execute(sql`DELETE FROM movimentacao_ovo WHERE id = ${data.id}`);
+        await db.delete(movimentacaoOvo).where(eq(movimentacaoOvo.id, data.id));
 
         return json({ message: 'Movimentação removida com sucesso!' });
     } catch (err) {
