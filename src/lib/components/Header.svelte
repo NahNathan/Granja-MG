@@ -8,7 +8,6 @@
 	* {
 		margin: 0;
 		padding: 0;
-		box-sizing: border-box;
 	}
 
 	header {
@@ -16,6 +15,9 @@
 		text-align: left;
 		width: 100vw; 
 		padding: 25px 20px; 
+		position: sticky;
+		top: 0;
+		left: 0;
 	}
 
 	h1 {

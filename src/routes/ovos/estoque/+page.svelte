@@ -103,24 +103,27 @@
 </main>
 
 <style>
-	.error {
-		color: red;
-		margin-bottom: 10px;
-	}
+    main {
+        max-width: 800px;
+        margin: auto;
+        padding: 20px;
+    }
 
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		margin-top: 20px;
-	}
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
 
-	th, td {
-		border: 1px solid #ddd;
-		padding: 8px;
-		text-align: center;
-	}
+    th, td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+    }
 
-	th {
-		background-color: #f4f4f4;
-	}
+    th {
+        background-color: #41644A;
+        color: white;
+    }
 </style>
+

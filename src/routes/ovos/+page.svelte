@@ -134,7 +134,8 @@
 </script>
 
 <main>
-	<h1>Gestão de Ovos</h1>
+	<h1>Gestão de Ovos<HomeButton text="Estoque 📦" to="ovos/estoque"/></h1>
+	
 
 	{#if errorMsg}
 		<p class="error">{errorMsg}</p>
@@ -236,21 +237,49 @@
 			</tbody>
 		</table>
 	</section>
-
-	<HomeButton text="Ir para Estoques 📦" to="ovos/estoque"/>
 </main>
 
 <style>
-	.error {
-		color: red;
-	}
-	table {
-		width: 100%;
-		border-collapse: collapse;
-	}
-	th,
-	td {
-		border: 1px solid #ddd;
-		padding: 8px;
-	}
+    main {
+        max-width: 800px;
+        margin: auto;
+        padding: 20px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    th, td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+    }
+
+    th {
+        background-color: #41644A;
+        color: white;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    button {
+        cursor: pointer;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        transition: 0.3s;
+    }
+
+    button:hover {
+        opacity: 0.8;
+    }
 </style>
+

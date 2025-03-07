@@ -103,29 +103,6 @@
 <main>
 	<h1>Gestão de Animais</h1>
 
-	{#if errorMsg}
-		<p class="error">{errorMsg}</p>
-	{/if}
-
-	<!-- 🔹 Formulário de Cadastro -->
-	<section>
-		<h2>{editMode ? 'Editar' : 'Adicionar'} Animal</h2>
-		<form on:submit|preventDefault={salvarAnimal}>
-			<label>Nome: <input type="text" bind:value={form.nome} required /></label>
-			<label>Tipo: <input type="text" bind:value={form.tipo} required /></label>
-			<label>Quantidade: <input type="number" bind:value={form.quantidade} min="0" required /></label>
-			<label>Galpão: <input type="text" bind:value={form.galpao} required /></label>
-			<label>
-				Ativo:
-				<input type="checkbox" bind:checked={form.ativo} />
-			</label>
-			<button type="submit">{editMode ? 'Atualizar' : 'Adicionar'}</button>
-			{#if editMode}
-				<button type="button" on:click={resetForm} class="cancel">Cancelar</button>
-			{/if}
-		</form>
-	</section>
-
 	<!-- 🔹 Lista de Animais -->
 	<section>
 		<h2>Lista de Animais</h2>
@@ -158,52 +135,72 @@
 		</table>
 	</section>
 
-	<HomeButton text="Voltar para Home 🏠" to="/" />
+	{#if errorMsg}
+		<p class="error">{errorMsg}</p>
+	{/if}
+
+	<!-- 🔹 Formulário de Cadastro -->
+	<section>
+		<h2>{editMode ? 'Editar' : 'Adicionar'} Animal</h2>
+		<form on:submit|preventDefault={salvarAnimal}>
+			<label>Nome: <input type="text" bind:value={form.nome} required /></label>
+			<label>Tipo: <input type="text" bind:value={form.tipo} required /></label>
+			<label>Quantidade: <input type="number" bind:value={form.quantidade} min="0" required /></label>
+			<label>Galpão: <input type="text" bind:value={form.galpao} required /></label>
+			<label>
+				Ativo:
+				<input type="checkbox" bind:checked={form.ativo} />
+			</label>
+			<button type="submit">{editMode ? 'Atualizar' : 'Adicionar'}</button>
+			{#if editMode}
+				<button type="button" on:click={resetForm} class="cancel">Cancelar</button>
+			{/if}
+		</form>
+	</section>
+	<HomeButton text="Voltar para Home 🏠" to="/home" />
 </main>
 
 <style>
-	.error {
-		color: red;
-		margin-bottom: 10px;
-	}
+    main {
+        max-width: 800px;
+        margin: auto;
+        padding: 20px;
+    }
 
-	form {
-		display: flex;
-		flex-direction: column;
-		max-width: 400px;
-		gap: 10px;
-		margin-bottom: 20px;
-	}
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
 
-	button {
-		background: #41644A;
-		color: white;
-		border: none;
-		padding: 10px;
-		cursor: pointer;
-	}
+    th, td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+    }
 
-	button:hover {
-		background: #2f4a32;
-	}
+    th {
+        background-color: #41644A;
+        color: white;
+    }
 
-	.cancel {
-		background: #a94442;
-	}
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
 
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		margin-top: 20px;
-	}
+    button {
+        cursor: pointer;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        transition: 0.3s;
+    }
 
-	th, td {
-		border: 1px solid #ddd;
-		padding: 8px;
-		text-align: center;
-	}
-
-	th {
-		background-color: #f4f4f4;
-	}
+    button:hover {
+        opacity: 0.8;
+    }
 </style>
+

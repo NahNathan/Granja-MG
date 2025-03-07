@@ -22,7 +22,6 @@ export async function POST({ request }) {
             throw error(400, 'Todos os campos são obrigatórios.');
         }
 
-        // 🔹 O ID agora é VARCHAR, então utilizamos um UUID
         await db.insert(loteOvo).values({
             id: crypto.randomUUID(), 
             animalId: data.animalId, 
