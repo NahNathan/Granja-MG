@@ -12,8 +12,7 @@
 		font-size: 13px;
 		font-weight: bold;
 		width: 100%;
-		box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
-		position: sticky;
+		position: relative;
 		bottom: 0;
         left: 0;
 	}
