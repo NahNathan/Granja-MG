@@ -12,7 +12,7 @@
 		font-size: 13px;
 		font-weight: bold;
 		width: 100%;
-		position: relative;
+		position: sticky;
 		bottom: 0;
         left: 0;
 	}

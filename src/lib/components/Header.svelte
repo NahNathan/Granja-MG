@@ -13,7 +13,7 @@
 	header {
 		background-color: #e9762b;
 		text-align: left;
-		width: 100vw; 
+		width: 100%; 
 		padding: 25px 20px; 
 		position: sticky;
 		top: 0;
