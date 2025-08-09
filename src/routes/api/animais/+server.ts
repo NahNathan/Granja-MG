@@ -3,7 +3,6 @@ import { animal } from '$lib/server/db/schema';
 import { json, error } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 
-// GET: Recuperar todos os animais
 export async function GET() {
   try {
     const animais = await db.select().from(animal);
@@ -13,22 +12,21 @@ export async function GET() {
   }
 }
 
-// POST: Adicionar um novo animal
 export async function POST({ request }) {
   try {
     const data = await request.json();
 
-    if (!data.id || !data.nome || !data.tipo) {
-      throw error(400, 'Dados incompletos para adicionar um animal.');
+    if (!data.nome || !data.tipo || !data.quantidade || !data.galpao) {
+      throw error(400, 'nome, tipo, quantidade e galpao são obrigatórios.');
     }
 
     await db.insert(animal).values({
-      id: data.id, // Agora `VARCHAR(255)`
+      id: crypto.randomUUID(),
       nome: data.nome,
       tipo: data.tipo,
-      quantidade: data.quantidade,
+      quantidade: Number(data.quantidade),
       galpao: data.galpao,
-      ativo: data.ativo
+      ativo: data.ativo ?? true
     });
 
     return json({ message: 'Animal adicionado com sucesso!' });
@@ -37,7 +35,6 @@ export async function POST({ request }) {
   }
 }
 
-// PUT: Atualizar um animal existente
 export async function PUT({ request }) {
   try {
     const data = await request.json();
@@ -50,9 +47,9 @@ export async function PUT({ request }) {
       .set({
         nome: data.nome,
         tipo: data.tipo,
-        quantidade: data.quantidade,
+        quantidade: data.quantidade != null ? Number(data.quantidade) : undefined,
         galpao: data.galpao,
-        ativo: data.ativo
+        ativo: typeof data.ativo === 'boolean' ? data.ativo : undefined
       })
       .where(eq(animal.id, data.id));
 
@@ -62,7 +59,6 @@ export async function PUT({ request }) {
   }
 }
 
-// DELETE: Remover um animal
 export async function DELETE({ request }) {
   try {
     const data = await request.json();

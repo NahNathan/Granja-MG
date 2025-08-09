@@ -1,237 +1,159 @@
 <script>
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import HomeButton from '$lib/components/HomeButton.svelte';
 
 	/**
 	 * @type {any[]}
 	 */
-	let lotes = [];
+	let coletas = [];
 	/**
 	 * @type {any[]}
 	 */
-	let movimentacoes = [];
-	let newLote = { animalId: '', quantidade: '', dataColeta: '' };
-	let newMovimentacao = { loteId: '', tipo: '', quantidade: '', destino: '', responsavelId: '' };
+	let animais = [];
 	let errorMsg = '';
+	let form = { animalId: '', quantidade: '', dataColeta: '', observacao: '' };
 
-	// 🔹 Função para buscar os lotes de ovos da API
-	async function fetchLotes() {
+	const mapaAnimalNome = () =>
+		Object.fromEntries(animais.map((a) => [a.id, `${a.nome} (${a.tipo})`]));
+
+	async function fetchColetas() {
 		try {
 			const res = await fetch('/api/ovos');
-			if (res.ok) {
-				lotes = await res.json();
-			} else {
-				errorMsg = 'Erro ao buscar lotes de ovos.';
-			}
-		} catch (err) {
-			errorMsg = 'Erro na conexão com o servidor.';
+			if (!res.ok) throw new Error();
+			coletas = await res.json();
+		} catch {
+			errorMsg = 'Erro ao buscar coletas de ovos.';
 		}
 	}
 
-	// 🔹 Função para buscar movimentações de ovos da API
-	async function fetchMovimentacoes() {
+	async function fetchAnimais() {
 		try {
-			const res = await fetch('/api/movimentacao-ovo');
-			if (res.ok) {
-				movimentacoes = await res.json();
-			} else {
-				errorMsg = 'Erro ao buscar movimentações.';
-			}
-		} catch (err) {
-			errorMsg = 'Erro na conexão com o servidor.';
+			const res = await fetch('/api/animais');
+			if (!res.ok) throw new Error();
+			animais = await res.json();
+		} catch {
+			errorMsg = 'Erro ao buscar animais.';
 		}
 	}
 
-	// 🔹 Adicionar um novo lote de ovos
-	async function addLote() {
+	async function adicionarColeta() {
 		try {
+			const payload = {
+				animalId: form.animalId,
+				quantidade: Number(form.quantidade),
+				dataColeta: form.dataColeta,
+				observacao: form.observacao?.trim() || null
+			};
 			const res = await fetch('/api/ovos', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(newLote)
+				body: JSON.stringify(payload)
 			});
-
-			if (res.ok) {
-				await fetchLotes();
-				newLote = { animalId: '', quantidade: '', dataColeta: '' };
-			} else {
-				errorMsg = 'Erro ao adicionar lote.';
-			}
-		} catch (err) {
-			errorMsg = 'Erro na conexão com o servidor.';
+			if (!res.ok) throw new Error();
+			await fetchColetas();
+			form = { animalId: '', quantidade: '', dataColeta: '', observacao: '' };
+			errorMsg = '';
+		} catch {
+			errorMsg = 'Erro ao adicionar coleta.';
 		}
 	}
 
-	// 🔹 Adicionar uma movimentação de ovos
-	async function addMovimentacao() {
-		try {
-			const res = await fetch('/api/movimentacao-ovo', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(newMovimentacao)
-			});
-
-			if (res.ok) {
-				await fetchMovimentacoes();
-				newMovimentacao = { loteId: '', tipo: '', quantidade: '', destino: '', responsavelId: '' };
-			} else {
-				errorMsg = 'Erro ao adicionar movimentação.';
-			}
-		} catch (err) {
-			errorMsg = 'Erro na conexão com o servidor.';
-		}
-	}
-
-	// 🔹 Deletar um lote de ovos
 	/**
 	 * @param {any} id
 	 */
-	async function deleteLote(id) {
+	async function excluirColeta(id) {
 		try {
 			const res = await fetch('/api/ovos', {
 				method: 'DELETE',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ id })
 			});
-
-			if (res.ok) {
-				await fetchLotes();
-			} else {
-				errorMsg = 'Erro ao remover lote.';
-			}
-		} catch (err) {
-			errorMsg = 'Erro na conexão com o servidor.';
+			if (!res.ok) throw new Error();
+			await fetchColetas();
+		} catch {
+			errorMsg = 'Erro ao remover coleta.';
 		}
 	}
 
-	// 🔹 Deletar uma movimentação de ovos
 	/**
-	 * @param {any} id
+	 * @param {string | number | Date} d
 	 */
-	async function deleteMovimentacao(id) {
+	function fmtData(d) {
 		try {
-			const res = await fetch('/api/movimentacao-ovo', {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ id })
-			});
-
-			if (res.ok) {
-				await fetchMovimentacoes();
-			} else {
-				errorMsg = 'Erro ao remover movimentação.';
-			}
-		} catch (err) {
-			errorMsg = 'Erro na conexão com o servidor.';
+			return new Date(d).toLocaleDateString();
+		} catch {
+			return d;
 		}
 	}
 
-	// 🔹 Buscar os dados ao carregar a página
-	onMount(() => {
-		fetchLotes();
-		fetchMovimentacoes();
+	onMount(async () => {
+		await Promise.all([fetchAnimais(), fetchColetas()]);
 	});
 </script>
 
 <main>
-	<h1>Gestão de Ovos<HomeButton text="Estoque 📦" to="ovos/estoque"/></h1>
-	
+	<header class="topbar">
+		<h1>Coletas de Ovos</h1>
+		<HomeButton text="Estoque 📦" to="/ovos/estoque" />
+	</header>
 
 	{#if errorMsg}
 		<p class="error">{errorMsg}</p>
 	{/if}
 
-	<!-- 🔹 Formulário para adicionar um novo lote -->
 	<section class="form-section">
-		<h2>Adicionar Lote de Ovos</h2>
-		<form on:submit|preventDefault={addLote}>
-			<input type="text" placeholder="ID do Animal" bind:value={newLote.animalId} required />
-			<input type="number" placeholder="Quantidade" bind:value={newLote.quantidade} required />
-			<input type="date" bind:value={newLote.dataColeta} required />
-			<button type="submit">Adicionar Lote</button>
+		<h2>Registrar Coleta</h2>
+		<form on:submit|preventDefault={adicionarColeta}>
+			<label>Animal
+				<select bind:value={form.animalId} required>
+					<option value="" disabled selected>Selecione</option>
+					{#each animais as a}
+						<option value={a.id}>{a.nome} ({a.tipo})</option>
+					{/each}
+				</select>
+			</label>
+
+			<label>Quantidade
+				<input type="number" min="0" bind:value={form.quantidade} required />
+			</label>
+
+			<label>Data da Coleta
+				<input type="date" bind:value={form.dataColeta} required />
+			</label>
+
+			<label>Observação
+				<input type="text" bind:value={form.observacao} placeholder="Opcional" />
+			</label>
+
+			<button type="submit">Adicionar</button>
 		</form>
 	</section>
 
-	<!-- 🔹 Tabela de Lotes -->
 	<section>
-		<h2>Lotes de Ovos</h2>
+		<h2>Lista de Coletas</h2>
 		<table>
 			<thead>
 				<tr>
 					<th>ID</th>
 					<th>Animal</th>
 					<th>Quantidade</th>
-					<th>Data Coleta</th>
+					<th>Data</th>
+					<th>Observação</th>
 					<th>Ações</th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each lotes as lote}
+				{#each coletas as c}
 					<tr>
-						<td>{lote.id}</td>
-						<td>{lote.animalId}</td>
-						<td>{lote.quantidade}</td>
-						<td>{lote.dataColeta}</td>
-						<td><button on:click={() => deleteLote(lote.id)}>❌</button></td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</section>
-
-	<!-- 🔹 Formulário para movimentações -->
-	<section class="form-section">
-		<h2>Registrar Movimentação</h2>
-		<form on:submit|preventDefault={addMovimentacao}>
-			<input type="text" placeholder="ID do Lote" bind:value={newMovimentacao.loteId} required />
-			<input
-				type="text"
-				placeholder="Tipo (guardado, vendido...)"
-				bind:value={newMovimentacao.tipo}
-				required
-			/>
-			<input
-				type="number"
-				placeholder="Quantidade"
-				bind:value={newMovimentacao.quantidade}
-				required
-			/>
-			<input type="text" placeholder="Destino (opcional)" bind:value={newMovimentacao.destino} />
-			<input
-				type="text"
-				placeholder="Responsável"
-				bind:value={newMovimentacao.responsavelId}
-				required
-			/>
-			<button type="submit">Registrar Movimentação</button>
-		</form>
-	</section>
-
-	<!-- 🔹 Tabela de Movimentações -->
-	<section>
-		<h2>Movimentações</h2>
-		<table>
-			<thead>
-				<tr>
-					<th>ID</th>
-					<th>Lote</th>
-					<th>Tipo</th>
-					<th>Quantidade</th>
-					<th>Destino</th>
-					<th>Responsável</th>
-					<th>Ações</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each movimentacoes as movimentacao}
-					<tr>
-						<td>{movimentacao.id}</td>
-						<td>{movimentacao.loteId}</td>
-						<td>{movimentacao.tipo}</td>
-						<td>{movimentacao.quantidade}</td>
-						<td>{movimentacao.destino || '-'}</td>
-						<td>{movimentacao.responsavelId}</td>
-						<td><button on:click={() => deleteMovimentacao(movimentacao.id)}>❌</button></td>
+						<td>{c.id}</td>
+						<td>{mapaAnimalNome()[c.animalId] ?? c.animalId}</td>
+						<td>{c.quantidade}</td>
+						<td>{fmtData(c.dataColeta)}</td>
+						<td>{c.observacao || '-'}</td>
+						<td>
+							<button on:click={() => excluirColeta(c.id)}>❌</button>
+						</td>
 					</tr>
 				{/each}
 			</tbody>
@@ -239,47 +161,85 @@
 	</section>
 </main>
 
+
 <style>
-    main {
-        max-width: 800px;
-        margin: auto;
-        padding: 20px;
-    }
+	main {
+		max-width: 980px;
+		margin: 0 auto;
+		padding: 20px;
+	}
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-    }
+	.topbar {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 12px;
+	}
 
-    th, td {
-        border: 1px solid #ddd;
-        padding: 10px;
-        text-align: left;
-    }
+	h1 { margin: 0; }
 
-    th {
-        background-color: #41644A;
-        color: white;
-    }
+	.form-section form {
+		margin-top: 12px;
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 12px;
+		border: 1px solid #e5e5e5;
+		padding: 16px;
+		border-radius: 8px;
+		background: #fafafa;
+	}
 
-    form {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
+	@media (min-width: 720px) {
+		.form-section form { grid-template-columns: repeat(2, 1fr); }
+		.form-section form button { grid-column: span 2; }
+	}
 
-    button {
-        cursor: pointer;
-        padding: 10px;
-        border: none;
-        border-radius: 5px;
-        transition: 0.3s;
-    }
+	label { display: flex; flex-direction: column; gap: 6px; }
 
-    button:hover {
-        opacity: 0.8;
-    }
+	input {
+		padding: 10px;
+		border-radius: 6px;
+		border: 1px solid #ddd;
+		background: #fff;
+	}
+
+	button {
+		cursor: pointer;
+		padding: 10px 14px;
+		border: none;
+		border-radius: 6px;
+		background: #41644A;
+		color: #fff;
+		transition: .2s;
+	}
+
+	button:hover { opacity: .9; }
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		margin-top: 16px;
+	}
+
+	thead th {
+		background: #41644A;
+		color: #fff;
+		text-align: left;
+		padding: 10px;
+	}
+
+	tbody td {
+		border: 1px solid #eee;
+		padding: 10px;
+		vertical-align: middle;
+	}
+
+	.error {
+		background: #ffe3e3;
+		color: #8a1f1f;
+		border: 1px solid #f5c2c2;
+		padding: 10px;
+		border-radius: 6px;
+		margin: 12px 0;
+	}
 </style>
-

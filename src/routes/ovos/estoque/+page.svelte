@@ -5,125 +5,177 @@
 	/**
 	 * @type {any[]}
 	 */
-	let lotes = [];
-	/**
-	 * @type {any[]}
-	 */
-	let movimentacoes = [];
+	let coletas = [];
 	let errorMsg = '';
 
-	// 🔹 Buscar lotes de ovos
-	async function fetchLotes() {
+	async function fetchColetas() {
 		try {
 			const res = await fetch('/api/ovos');
-			if (res.ok) {
-				lotes = await res.json();
-			} else {
-				errorMsg = 'Erro ao buscar lotes de ovos.';
-			}
-		} catch (err) {
-			errorMsg = 'Erro na conexão com o servidor.';
+			if (!res.ok) throw new Error();
+			coletas = await res.json();
+		} catch {
+			errorMsg = 'Erro ao buscar coletas.';
 		}
 	}
 
-	// 🔹 Buscar movimentações de ovos
-	async function fetchMovimentacoes() {
-		try {
-			const res = await fetch('/api/movimentacao-ovo');
-			if (res.ok) {
-				movimentacoes = await res.json();
-			} else {
-				errorMsg = 'Erro ao buscar movimentações.';
-			}
-		} catch (err) {
-			errorMsg = 'Erro na conexão com o servidor.';
-		}
-	}
+	// Total geral coletado
+	$: totalGeral = coletas.reduce((acc, c) => acc + Number(c.quantidade || 0), 0);
 
-	// 🔹 Calcular o saldo atual de cada lote
+	// Total por animal (mapa {animalId: total})
+	$: totalPorAnimal = coletas.reduce((map, c) => {
+		const k = c.animalId || '—';
+		map[k] = (map[k] || 0) + Number(c.quantidade || 0);
+		return map;
+	}, /** @type {Record<string, number>} */ ({}));
+
+	// Total por dia (yyyy-mm-dd -> total)
 	/**
-	 * @param {any} loteId
+	 * @param {string | number | Date} d
 	 */
-	function calcularEstoque(loteId) {
-		let saldo = 0;
-
-		// Somar e subtrair movimentações relevantes ao lote
-		movimentacoes.forEach(mov => {
-			if (mov.loteId === loteId) {
-				if (mov.tipo === 'guardado') saldo += mov.quantidade;
-				else if (mov.tipo === 'vendido' || mov.tipo === 'descartado') saldo -= mov.quantidade;
-			}
-		});
-
-		return saldo;
+	function toYMD(d) {
+		const dt = new Date(d);
+		const y = dt.getFullYear();
+		const m = String(dt.getMonth() + 1).padStart(2, '0');
+		const day = String(dt.getDate()).padStart(2, '0');
+		return `${y}-${m}-${day}`;
 	}
+	$: totalPorDia = coletas.reduce((map, c) => {
+		const k = c.dataColeta ? toYMD(c.dataColeta) : '—';
+		map[k] = (map[k] || 0) + Number(c.quantidade || 0);
+		return map;
+	}, /** @type {Record<string, number>} */ ({}));
 
-	// 🔹 Buscar os dados ao carregar a página
-	onMount(() => {
-		fetchLotes();
-		fetchMovimentacoes();
-	});
+	onMount(fetchColetas);
 </script>
 
 <main>
-	<h1>Estoque de Ovos</h1>
+	<header class="topbar">
+		<h1>Estoque / Resumo de Coletas</h1>
+		<HomeButton text="Voltar" to="/ovos" />
+	</header>
 
 	{#if errorMsg}
 		<p class="error">{errorMsg}</p>
 	{/if}
 
-	<!-- 🔹 Tabela de Estoque -->
+	<section class="cards">
+		<div class="card">
+			<h3>Total Geral</h3>
+			<p class="big">{totalGeral}</p>
+		</div>
+		<div class="card">
+			<h3>Animais distintos</h3>
+			<p class="big">{Object.keys(totalPorAnimal).length}</p>
+		</div>
+		<div class="card">
+			<h3>Dias com coleta</h3>
+			<p class="big">{Object.keys(totalPorDia).length}</p>
+		</div>
+	</section>
+
 	<section>
-		<h2>Resumo do Estoque</h2>
+		<h2>Total por Animal</h2>
 		<table>
 			<thead>
 				<tr>
-					<th>ID do Lote</th>
-					<th>Animal</th>
-					<th>Quantidade Inicial</th>
-					<th>Saldo Atual</th>
-					<th>Última Atualização</th>
+					<th>Animal (ID)</th>
+					<th>Total Coletado</th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each lotes as lote}
+				{#each Object.entries(totalPorAnimal) as [animalId, total]}
 					<tr>
-						<td>{lote.id}</td>
-						<td>{lote.animalId}</td>
-						<td>{lote.quantidade}</td>
-						<td>{calcularEstoque(lote.id)}</td>
-						<td>{lote.atualizadoEm}</td>
+						<td>{animalId}</td>
+						<td>{total}</td>
 					</tr>
 				{/each}
 			</tbody>
 		</table>
 	</section>
 
-	<HomeButton text="Voltar para Home 🏠" to="/home" />
+	<section>
+		<h2>Total por Dia</h2>
+		<table>
+			<thead>
+				<tr>
+					<th>Data</th>
+					<th>Total Coletado</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each Object.entries(totalPorDia) as [dia, total]}
+					<tr>
+						<td>{dia}</td>
+						<td>{total}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</section>
 </main>
 
 <style>
-    main {
-        max-width: 800px;
-        margin: auto;
-        padding: 20px;
-    }
+	main {
+		max-width: 980px;
+		margin: 0 auto;
+		padding: 20px;
+	}
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-    }
+	.topbar {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 12px;
+	}
 
-    th, td {
-        border: 1px solid #ddd;
-        padding: 10px;
-        text-align: left;
-    }
+	.cards {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 12px;
+		margin: 16px 0 24px;
+	}
 
-    th {
-        background-color: #41644A;
-        color: white;
-    }
+	@media (min-width: 720px) {
+		.cards { grid-template-columns: repeat(3, 1fr); }
+	}
+
+	.card {
+		border: 1px solid #e5e5e5;
+		border-radius: 8px;
+		background: #fafafa;
+		padding: 14px;
+	}
+
+	.card .big {
+		font-size: 24px;
+		font-weight: 700;
+		margin-top: 6px;
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		margin-top: 12px;
+	}
+
+	thead th {
+		background: #41644A;
+		color: #fff;
+		text-align: left;
+		padding: 10px;
+	}
+
+	tbody td {
+		border: 1px solid #eee;
+		padding: 10px;
+	}
+
+	.error {
+		background: #ffe3e3;
+		color: #8a1f1f;
+		border: 1px solid #f5c2c2;
+		padding: 10px;
+		border-radius: 6px;
+		margin: 12px 0;
+	}
 </style>
-

@@ -1,180 +1,340 @@
 <script>
-    import { onMount } from "svelte";
-    import HomeButton from "$lib/components/HomeButton.svelte";
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import HomeButton from '$lib/components/HomeButton.svelte';
 
-    /**
+	/**
 	 * @type {any[]}
 	 */
-    let vendas = [];
-    let descricao = "";
-    let comprador = "";
-    let quantidade = "";
-    let valorTotal = "";
-    let metodoPagamento = "dinheiro";
-    let responsavelId = "";
-    /**
+	let vendas = [];
+	/**
+	 * @type {any[]}
+	 */
+	let animais = [];
+
+	let animalId = '';
+	let descricao = '';
+	let comprador = '';
+	let quantidade = '';
+	let valorTotal = '';
+	let metodoPagamento = 'dinheiro';
+	let dataVenda = '';
+
+	/**
 	 * @type {null}
 	 */
-    let editando = null;
+	let editando = null;
+	let erro = '';
 
-    async function fetchVendas() {
-        const res = await fetch("/api/vendas");
-        vendas = await res.json();
-    }
+	$: currentUserId = $page?.data?.user?.id ?? '';
 
-    async function salvarVenda() {
-        const body = JSON.stringify({
-            descricao,
-            comprador,
-            quantidade: parseInt(quantidade),
-            valorTotal: parseFloat(valorTotal),
-            metodoPagamento,
-            responsavelId
-        });
+	const mapaAnimalNome = () =>
+		Object.fromEntries(animais.map((a) => [a.id, `${a.nome} (${a.tipo})`]));
 
-        const method = editando ? "PUT" : "POST";
-        await fetch("/api/vendas", {
-            method,
-            headers: { "Content-Type": "application/json" },
-            body: editando ? JSON.stringify({ id: editando, ...JSON.parse(body) }) : body
-        });
+	async function fetchAnimais() {
+		const res = await fetch('/api/animais');
+		animais = await res.json();
+	}
 
-        resetForm();
-        fetchVendas();
-    }
+	async function fetchVendas() {
+		const res = await fetch('/api/vendas');
+		vendas = await res.json();
+	}
 
-    /**
+	function validar() {
+		if (!currentUserId) return 'Sessão expirada. Faça login novamente.';
+		if (!animalId) return 'Selecione o animal';
+		if (!descricao.trim()) return 'Descrição é obrigatória';
+		if (!comprador.trim()) return 'Comprador é obrigatório';
+		if (quantidade === '' || Number(quantidade) <= 0) return 'Quantidade inválida';
+		if (valorTotal === '' || Number(valorTotal) < 0) return 'Valor total inválido';
+		return '';
+	}
+
+	async function salvarVenda() {
+		erro = validar();
+		if (erro) return;
+
+		const payload = {
+			animalId,
+			descricao,
+			comprador,
+			quantidade: Number(quantidade),
+			valorTotal: Number(valorTotal),
+			metodoPagamento,
+			responsavelId: currentUserId,
+			...(dataVenda ? { dataVenda } : {})
+		};
+
+		const method = editando ? 'PUT' : 'POST';
+		const body = editando ? { id: editando, ...payload } : payload;
+
+		const res = await fetch('/api/vendas', {
+			method,
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body)
+		});
+
+		if (!res.ok) {
+			const j = await res.json().catch(() => ({}));
+			erro = j?.message || 'Falha ao salvar venda';
+			return;
+		}
+
+		resetForm();
+		await fetchVendas();
+	}
+
+	/**
 	 * @param {any} id
 	 */
-    async function deletarVenda(id) {
-        await fetch("/api/vendas", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id })
-        });
-        fetchVendas();
-    }
+	async function deletarVenda(id) {
+		const res = await fetch('/api/vendas', {
+			method: 'DELETE',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ id })
+		});
+		if (!res.ok) {
+			const j = await res.json().catch(() => ({}));
+			erro = j?.message || 'Falha ao excluir venda';
+			return;
+		}
+		await fetchVendas();
+	}
 
-    /**
-	 * @param {{ descricao: string; comprador: string; quantidade: string; valorTotal: string; metodoPagamento: string; responsavelId: string; id: any; }} venda
+	/**
+	 * @param {{ animalId: string; descricao: string; comprador: string; quantidade: any; valorTotal: any; metodoPagamento: string; dataVenda: string; id: any; }} v
 	 */
-    function carregarParaEdicao(venda) {
-        descricao = venda.descricao;
-        comprador = venda.comprador;
-        quantidade = venda.quantidade;
-        valorTotal = venda.valorTotal;
-        metodoPagamento = venda.metodoPagamento;
-        responsavelId = venda.responsavelId;
-        editando = venda.id;
-    }
+	function carregarParaEdicao(v) {
+		animalId = v.animalId;
+		descricao = v.descricao;
+		comprador = v.comprador;
+		quantidade = String(v.quantidade);
+		valorTotal = String(v.valorTotal);
+		metodoPagamento = v.metodoPagamento;
+		dataVenda = v.dataVenda ? v.dataVenda.slice(0, 10) : '';
+		editando = v.id;
+		erro = '';
+	}
 
-    function resetForm() {
-        descricao = "";
-        comprador = "";
-        quantidade = "";
-        valorTotal = "";
-        metodoPagamento = "dinheiro";
-        responsavelId = "";
-        editando = null;
-    }
+	function resetForm() {
+		animalId = '';
+		descricao = '';
+		comprador = '';
+		quantidade = '';
+		valorTotal = '';
+		metodoPagamento = 'dinheiro';
+		dataVenda = '';
+		editando = null;
+		erro = '';
+	}
 
-    onMount(fetchVendas);
+	onMount(async () => {
+		await Promise.all([fetchAnimais(), fetchVendas()]);
+	});
 </script>
 
 <main>
-    <h1>Vendas</h1>
+	<h1>Vendas</h1>
 
-    <form on:submit|preventDefault={salvarVenda}>
-        <input type="text" placeholder="Descrição" bind:value={descricao} required />
-        <input type="text" placeholder="Comprador" bind:value={comprador} required />
-        <input type="number" placeholder="Quantidade" bind:value={quantidade} required />
-        <input type="number" placeholder="Valor Total" bind:value={valorTotal} required />
-        
-        <select bind:value={metodoPagamento}>
-            <option value="dinheiro">Dinheiro</option>
-            <option value="cartão">Cartão</option>
-            <option value="pix">Pix</option>
-        </select>
+	{#if erro}
+		<p class="erro">{erro}</p>
+	{/if}
 
-        <input type="text" placeholder="ID do Responsável" bind:value={responsavelId} required />
+	<form on:submit|preventDefault={salvarVenda}>
+		<div class="grid">
+			<label>
+				Animal
+				<select bind:value={animalId} required>
+					<option value="" disabled selected>Selecione</option>
+					{#each animais as a}
+						<option value={a.id}>{a.nome} ({a.tipo})</option>
+					{/each}
+				</select>
+			</label>
 
-        <button type="submit">{editando ? "Atualizar" : "Adicionar"}</button>
-        {#if editando}
-            <button type="button" on:click={resetForm}>Cancelar</button>
-        {/if}
-    </form>
+			<label>
+				Descrição
+				<input type="text" bind:value={descricao} required />
+			</label>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Descrição</th>
-                <th>Comprador</th>
-                <th>Quantidade</th>
-                <th>Valor</th>
-                <th>Método</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {#each vendas as venda}
-                <tr>
-                    <td>{venda.descricao}</td>
-                    <td>{venda.comprador}</td>
-                    <td>{venda.quantidade}</td>
-                    <td>R$ {venda.valorTotal}</td>
-                    <td>{venda.metodoPagamento}</td>
-                    <td>
-                        <button on:click={() => carregarParaEdicao(venda)}>Editar</button>
-                        <button on:click={() => deletarVenda(venda.id)}>Excluir</button>
-                    </td>
-                </tr>
-            {/each}
-        </tbody>
-    </table>
+			<label>
+				Comprador
+				<input type="text" bind:value={comprador} required />
+			</label>
 
-    <HomeButton text="Voltar" to="/home" />
+			<label>
+				Quantidade
+				<input type="number" min="1" step="1" bind:value={quantidade} required />
+			</label>
+
+			<label>
+				Valor Total (R$)
+				<input type="number" min="0" step="0.01" bind:value={valorTotal} required />
+			</label>
+
+			<label>
+				Método de Pagamento
+				<select bind:value={metodoPagamento}>
+					<option value="dinheiro">Dinheiro</option>
+					<option value="cartao">Cartão</option>
+					<option value="pix">Pix</option>
+				</select>
+			</label>
+
+			<label>
+				Data da Venda (opcional)
+				<input type="date" bind:value={dataVenda} />
+			</label>
+		</div>
+
+		<div class="acoes">
+			<button type="submit">{editando ? 'Atualizar' : 'Adicionar'}</button>
+			{#if editando}
+				<button type="button" class="sec" on:click={resetForm}>Cancelar</button>
+			{/if}
+		</div>
+	</form>
+
+	<table>
+		<thead>
+			<tr>
+				<th>Animal</th>
+				<th>Descrição</th>
+				<th>Comprador</th>
+				<th>Quantidade</th>
+				<th>Valor</th>
+				<th>Método</th>
+				<th>Data</th>
+				<th>Ações</th>
+			</tr>
+		</thead>
+		<tbody>
+			{#each vendas as v}
+				<tr>
+					<td>{mapaAnimalNome()[v.animalId] ?? v.animalId}</td>
+					<td>{v.descricao}</td>
+					<td>{v.comprador}</td>
+					<td>{v.quantidade}</td>
+					<td>R$ {Number(v.valorTotal).toFixed(2)}</td>
+					<td>{v.metodoPagamento}</td>
+					<td>{v.dataVenda ? new Date(v.dataVenda).toLocaleDateString() : '-'}</td>
+					<td class="acoes-cell">
+						<button on:click={() => carregarParaEdicao(v)}>Editar</button>
+						<button class="danger" on:click={() => deletarVenda(v.id)}>Excluir</button>
+					</td>
+				</tr>
+			{/each}
+		</tbody>
+	</table>
+
+	<HomeButton text="Voltar" to="/home" />
 </main>
 
-<style>
+  
+  <style>
     main {
-        max-width: 800px;
-        margin: auto;
-        padding: 20px;
+      max-width: 980px;
+      margin: auto;
+      padding: 20px;
     }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
+  
+    h1 {
+      margin-bottom: 16px;
     }
-
-    th, td {
-        border: 1px solid #ddd;
-        padding: 10px;
-        text-align: left;
+  
+    .erro {
+      background: #ffe3e3;
+      color: #8a1f1f;
+      border: 1px solid #f5c2c2;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 12px;
     }
-
-    th {
-        background-color: #41644A;
-        color: white;
-    }
-
+  
     form {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-bottom: 20px;
+      border: 1px solid #e5e5e5;
+      padding: 16px;
+      border-radius: 8px;
+      background: #fafafa;
+      margin-bottom: 20px;
     }
-
+  
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+  
+    @media (min-width: 720px) {
+      .grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 14px;
+    }
+  
+    input, select {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      background: white;
+    }
+  
+    .acoes {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+  
     button {
-        cursor: pointer;
-        padding: 10px;
-        border: none;
-        border-radius: 5px;
-        transition: 0.3s;
+      cursor: pointer;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 6px;
+      background: #41644A;
+      color: #fff;
+      transition: 0.2s;
     }
-
-    button:hover {
-        opacity: 0.8;
+  
+    button:hover { opacity: 0.9; }
+  
+    .sec {
+      background: #88918c;
     }
-</style>
+  
+    .danger {
+      background: #b43c3c;
+    }
+  
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+    }
+  
+    thead th {
+      background: #41644A;
+      color: #fff;
+      text-align: left;
+      padding: 10px;
+    }
+  
+    tbody td {
+      border: 1px solid #eee;
+      padding: 10px;
+      vertical-align: middle;
+    }
+  
+    .acoes-cell {
+      display: flex;
+      gap: 6px;
+    }
+  </style>
+  
